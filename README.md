@@ -14,7 +14,7 @@ winget install Python.Python.3.12
 3. Optional: copy `skills/*` into `.claude/skills/` so they show up as `/idea-to-spec` and `/build-preview`.
 
 ## From an ai-film-lab film
-`film final` in ai-film-lab writes `out/final.timeline.json` beside the video. Then:
+[ai-film-lab](https://github.com/jacekkotowski/ai-film-lab) makes the film: your photos, clips and voice, cut, captioned and set to music. Its `film final` writes `out/final.timeline.json` beside the video. Then:
 ```
 python library/rigs/film_to_stops.py "<film>/out/final.timeline.json" projects/<yyyy-mm_slug>
 blender -b -P library/rigs/flight.py -- projects/<yyyy-mm_slug>/stops.json --stills
