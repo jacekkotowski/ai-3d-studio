@@ -1,0 +1,6 @@
+# Renders, logs and saved scenes: all regenerable from stops.json with library/rigs/flight.py
+projects/*/preview/*
+projects/*/out/*
+!projects/*/out/.gitkeep
+*.blend
+*.blend1

@@ -1,0 +1,69 @@
+{
+  "title": "AI on my terms",
+  "source": "C:/Users/jacek/code/ai-film-lab/projects/AI on my terms/out/final.timeline.json",
+  "film": "C:/Users/jacek/code/ai-film-lab/projects/AI on my terms/out/final.mp4",
+  "fps": 24,
+  "resolution": [
+    1080,
+    1920
+  ],
+  "frames": 3064,
+  "stops": [
+    {
+      "title": "AI on my terms",
+      "hub": true
+    },
+    {
+      "title": "Claudian"
+    },
+    {
+      "title": "Git"
+    },
+    {
+      "title": "Connectors"
+    },
+    {
+      "title": "Skills"
+    },
+    {
+      "title": "Qmd"
+    }
+  ],
+  "visits": [
+    {
+      "stop": 0,
+      "start_frame": 0,
+      "end_frame": 320
+    },
+    {
+      "stop": 1,
+      "start_frame": 320,
+      "end_frame": 661
+    },
+    {
+      "stop": 2,
+      "start_frame": 661,
+      "end_frame": 1210
+    },
+    {
+      "stop": 3,
+      "start_frame": 1210,
+      "end_frame": 1461
+    },
+    {
+      "stop": 4,
+      "start_frame": 1461,
+      "end_frame": 1842
+    },
+    {
+      "stop": 5,
+      "start_frame": 1842,
+      "end_frame": 2388
+    },
+    {
+      "stop": 0,
+      "start_frame": 2388,
+      "end_frame": 3064
+    }
+  ]
+}
