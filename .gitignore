@@ -4,3 +4,4 @@ projects/*/out/*
 !projects/*/out/.gitkeep
 *.blend
 *.blend1
+__pycache__/

@@ -12,6 +12,8 @@
 - The map lights up as the story goes: unvisited nodes are ghosts at `DIM` 0.25; on the glide to a node's first
   visit its link draws out from the hub (first half) and the node brightens (second half), fully lit by `arrive`.
   Hub lit from the start; the pull-back shows the whole map lit. `GLIDE_S` 1.5 -> 2.0.
+- FLY.bat + library/rigs/fly.py: drag a film on it -> new project, stills, then asks draft / video.
+  Finds Blender itself, works offline, never overwrites stops.json. README has the steps.
 - Shorts guard: a film of 180 s or less gets its pull-back shortened to fit (not below 1 s), and it says so.
 - Films done: 2026-09_trade-behind-war (draft), 2026-09_ai-on-my-terms (out/flight_film.mp4, 130.7 s),
   2026-09_what-is-love (out/flight_film.mp4, 262.0 s, with light-up; sent).
@@ -23,7 +25,6 @@
 
 ## Later / optional
 - Captions during the glides (the full-screen parts already carry the film's own)
-- FLY.bat: drop final.timeline.json on it; finds Blender itself; convert -> stills -> draft
 - 2.5D parallax for photo films: belongs in ai-film-lab's render (a depth map per still, cached in
   analysis/, model via models.py; Depth Anything V2 + onnxruntime), not here
 - Recipes: plot3d, machine, photo-planes
