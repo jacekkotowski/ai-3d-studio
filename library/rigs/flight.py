@@ -42,7 +42,7 @@ from mathutils import Vector
 # ---------------------------------------------------------------- settings
 FPS = 30
 HOLD_S = 3.0            # seconds the camera rests on a stop
-GLIDE_S = 1.5           # seconds of flight between stops
+GLIDE_S = 2.0           # seconds of flight between stops
 OVERVIEW_S = 3.0        # final pull-back
 RES_X, RES_Y = 1080, 1920   # vertical short
 PREVIEW_PCT = 50
@@ -54,6 +54,8 @@ GLIDE_PULLBACK = 7.0    # how far the camera backs off mid-glide
 IMG_LONG = 4.4          # a picture card's or screen's longer side (hub x 1.35)
 CORNER = 0.05           # corner radius, as a share of a card's shorter side
 SQUARE_S = 0.4          # a screen's corners square off over this long before it fills the frame
+DIM = 0.25              # film map: a node not yet visited glows at this share of its light
+SHORTS_S = 180          # film map: a film this short stays a Short (the pull-back shrinks to fit)
 GLOW = 0.9              # how far a card's coloured glow reaches beyond it
 GLOW_STRENGTH = 0.35
 BACKDROP_Y = 14.0       # the dot grid far behind the map: parallax while flying
@@ -273,14 +275,15 @@ def glow_mat(name, rgb, size, inner, r):
     link(new("ShaderNodeBsdfTransparent").outputs[0], add.inputs[0])
     link(em.outputs[0], add.inputs[1])
     link(add.outputs[0], new("ShaderNodeOutputMaterial").inputs[0])
-    return mat
+    return mat, strength.inputs[1]
 
 
 def add_glow(root, idx, color, w, h):
     r = corner(w, h)
     size = (w + 2 * GLOW, h + 2 * GLOW)
-    add_plane(f"stop_{idx:02d}_glow", size, 0.12,
-              glow_mat(f"glow_{idx}", color, size, (w, h), r), root, radius=r + GLOW)
+    mat, strength = glow_mat(f"glow_{idx}", color, size, (w, h), r)
+    add_plane(f"stop_{idx:02d}_glow", size, 0.12, mat, root, radius=r + GLOW)
+    return strength
 
 
 def add_backdrop():
@@ -324,16 +327,24 @@ def add_backdrop():
 
 def add_frame_and_title(stop, idx, root, color, is_hub, w, h):
     """A thin coloured frame behind the card, its glow, and on branches the
-    title above. The hub's picture carries its own title."""
+    title above. The hub's picture carries its own title. Returns the
+    strength sockets of all three, for light_up."""
+    frame = emission_mat(f"frame_{idx}", color, 1.2)
     add_plane(f"stop_{idx:02d}_frame", (w + 0.14, h + 0.14), 0.05,
-              emission_mat(f"frame_{idx}", color, 1.2), root, radius=corner(w, h) + 0.07)
-    add_glow(root, idx, color, w, h)
+              frame, root, radius=corner(w, h) + 0.07)
+    sockets = [strength(frame), add_glow(root, idx, color, w, h)]
     if is_hub:
-        return
+        return sockets
+    title = emission_mat(f"txt_{idx}", color, 1.6)
     t = add_text(stop["title"], 0.3, (0, -0.02, h / 2 + 0.45), w * 0.95,
-                 emission_mat(f"txt_{idx}", color, 1.6), f"stop_{idx:02d}_title", bold=True)
+                 title, f"stop_{idx:02d}_title", bold=True)
     t.rotation_euler = (math.radians(90), 0, 0)
     t.parent = root
+    return sockets + [strength(title)]
+
+
+def strength(mat):
+    return mat.node_tree.nodes["Emission"].inputs["Strength"]
 
 
 def film_mat(name, film, a, b):
@@ -361,7 +372,8 @@ def film_mat(name, film, a, b):
 def add_film_node(stop, idx, loc, color, is_hub, film, spans, res):
     """A stop as a screen of the film's own shape: one screen per visit, all
     in the same place, each playing its visit's frames (`spans`). Returns
-    the root, the size the camera fits, and the screens in visit order."""
+    the root, the size the camera fits, the screens in visit order and the
+    strength sockets that light_up dims (screens, frame, glow, title)."""
     root = bpy.data.objects.new(f"stop_{idx:02d}", None)
     root.location = loc
     bpy.context.collection.objects.link(root)
@@ -369,8 +381,9 @@ def add_film_node(stop, idx, loc, color, is_hub, film, spans, res):
     screens = [add_plane(f"stop_{idx:02d}_screen_{j}", (w, h), 0.0,
                          film_mat(f"film_{idx}_{j}", film, a, b), root, squarable=True)
                for j, (a, b) in enumerate(spans)]
-    add_frame_and_title(stop, idx, root, color, is_hub, w, h)
-    return root, (w, h), screens
+    sockets = [strength(s.data.materials[0]) for s in screens]
+    sockets += add_frame_and_title(stop, idx, root, color, is_hub, w, h)
+    return root, (w, h), screens, sockets
 
 
 def edge_point(center, size, toward):
@@ -388,6 +401,7 @@ def add_link(a, b, a_size, b_size, color, idx):
     curve = bpy.data.curves.new(f"link_{idx}", "CURVE")
     curve.dimensions = "3D"
     curve.bevel_depth = 0.025
+    curve.bevel_factor_mapping_end = "SPLINE"      # light_up draws it out evenly along its length
     spline = curve.splines.new("BEZIER")
     spline.bezier_points.add(1)
     p0, p1 = spline.bezier_points
@@ -400,6 +414,7 @@ def add_link(a, b, a_size, b_size, color, idx):
     obj = bpy.data.objects.new(f"link_{idx}", curve)
     obj.data.materials.append(emission_mat(f"link_{idx}", color, 1.5))
     bpy.context.collection.objects.link(obj)
+    return curve
 
 
 def layout(n_branches):
@@ -488,10 +503,49 @@ def build_film_camera(scene, locs, sizes, visits, fps, res, overview_loc):
             mid = (cam_at(stop) + cam_at(nxt)) / 2 + Vector((0, -GLIDE_PULLBACK, 0))
             key(1 + v["end_frame"], mid, (locs[stop] + locs[nxt]) / 2)
             marks.append((f"v{k:02d}_glide", 1 + v["end_frame"]))
-    end += int(OVERVIEW_S * fps)
+    end += pullback_frames(end, fps)
     key(end, overview_loc, origin)
     marks.append(("overview", end))
     return end, marks, spans
+
+
+def pullback_frames(film_frames, fps):
+    """OVERVIEW_S, unless that would push a Short past SHORTS_S: then only
+    what still fits (never below 1 s), so a Short stays a Short."""
+    want, room = int(OVERVIEW_S * fps), SHORTS_S * fps - film_frames
+    if film_frames > SHORTS_S * fps or want <= room:
+        return want
+    got = max(fps, room)
+    print(f"Shorts guard: pull-back {got / fps:.1f}s instead of {OVERVIEW_S}s "
+          f"(film {film_frames / fps:.1f}s, limit {SHORTS_S}s)")
+    return got
+
+
+def light_up(nodes, links, visits, spans):
+    """The map lights up as the story goes. A node not yet visited is a
+    ghost at DIM; on the glide to its first visit, the link from the hub
+    draws out over the first half and the node brightens over the second,
+    fully lit by `arrive` -- from there on the film's own frames take over,
+    so a node still brightening would jump. The hub is lit from the start."""
+    seen = {visits[0]["stop"]}
+    for k in range(1, len(visits)):
+        stop = visits[k]["stop"]
+        if stop in seen:
+            continue
+        seen.add(stop)
+        start, arrive = spans[k - 1][1], spans[k][0]
+        mid = (start + arrive) // 2
+        curve = links.get(stop)
+        if curve:
+            for f, v in ((start, 0.0), (mid, 1.0)):
+                curve.bevel_factor_end = v
+                curve.keyframe_insert("bevel_factor_end", frame=f)
+        for sock in nodes[stop]:
+            full = sock.default_value
+            for f, v in ((mid, full * DIM), (arrive, full)):
+                sock.default_value = v
+                sock.keyframe_insert("default_value", frame=f)
+            sock.default_value = full
 
 
 def square_corners(screens, spans, fps):
@@ -663,13 +717,13 @@ def main():
     scene = reset_scene()
     add_backdrop()
     locs = layout(len(stops) - 1)
-    sizes, screens = [], [None] * len(visits)
+    sizes, screens, glows, links = [], [None] * len(visits), {}, {}
     for i, (stop, loc) in enumerate(zip(stops, locs)):
         color = PALETTE[(i - 1) % len(PALETTE)] if i else (0.95, 0.95, 0.97)
         if film:
             mine = [k for k, v in enumerate(visits) if v["stop"] == i]
             spans = [(visits[k]["start_frame"], visits[k]["end_frame"]) for k in mine]
-            _, size, scr = add_film_node(stop, i, loc, color, i == 0, film, spans, res)
+            _, size, scr, glows[i] = add_film_node(stop, i, loc, color, i == 0, film, spans, res)
             for k, s in zip(mine, scr):
                 screens[k] = s
         elif stop.get("image"):
@@ -678,13 +732,14 @@ def main():
             _, size = add_card(stop, i, loc, color, is_hub=(i == 0))
         sizes.append(size)
         if i:
-            add_link(locs[0], loc, sizes[0], size, color, i)
+            links[i] = add_link(locs[0], loc, sizes[0], size, color, i)
 
     overview = Vector((0, -RING_Z * 3.4, 0.5))
     if film:
         end, marks, full = build_film_camera(scene, locs, sizes, visits, fps, res, overview)
         swap_screens(screens, visits, full)
         square_corners(screens, full, fps)
+        light_up(glows, links, visits, full)
     else:
         end, marks = build_camera(scene, locs, overview)
 
