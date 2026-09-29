@@ -16,6 +16,7 @@ never overwritten, so your edits to titles are kept. FLY.bat calls this.
 """
 
 import glob
+import json
 import os
 import re
 import shutil
@@ -71,13 +72,39 @@ def slugify(title):
 
 
 def project_for(timeline):
-    """The project already made from this timeline, or a new one named after the film."""
+    """The project already made from this timeline, or a new one named after the film.
+    The name is the slug ai-film-lab writes (its decision 0014); older timelines
+    have none, so the folder name is slugified here as before."""
     source = timeline.as_posix()
     for stops in PROJECTS.glob("*/stops.json"):
         if f'"source": "{source}"' in stops.read_text(encoding="utf-8"):
             return stops.parent, False
-    title = timeline.parents[1].name if timeline.parent.name == "out" else timeline.stem
-    return PROJECTS / f"{date.today():%Y-%m}_{slugify(title)}", True
+    slug = json.loads(timeline.read_text(encoding="utf-8")).get("slug")
+    if not slug:
+        title = timeline.parents[1].name if timeline.parent.name == "out" else timeline.stem
+        slug = slugify(title)
+    return PROJECTS / f"{date.today():%Y-%m}_{slug}", True
+
+
+def film_changed(stops, timeline):
+    """True when the film was rendered again after this flight was made, None
+    when either side has no fingerprint (a flight or film from before 0014)."""
+    made, now = stops.get("video_sha256"), timeline.get("video_sha256")
+    if not made or not now:
+        return None
+    return made != now
+
+
+def warn_if_film_changed(project):
+    stops = json.loads((project / "stops.json").read_text(encoding="utf-8"))
+    source = Path(stops.get("source", ""))
+    if not source.is_file():
+        return
+    if film_changed(stops, json.loads(source.read_text(encoding="utf-8"))):
+        print(f"\nWARNING: the film was rendered again after this flight was made.\n"
+              f"  The flight still shows the old cuts. To start again from the new film:\n"
+              f"  python library/rigs/film_to_stops.py \"{source}\" \"{project}\" --force\n"
+              f"  (--force overwrites your title edits in stops.json)")
 
 
 def render(blender, project, step):
@@ -119,6 +146,7 @@ def main():
                   f"fix them in stops.json and run the stills again.")
         else:
             print(f"Project already made from this film: {project}")
+    warn_if_film_changed(project)
 
     blender = find_blender()
     step = step or "stills"

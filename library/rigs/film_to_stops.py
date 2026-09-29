@@ -42,6 +42,10 @@ def to_stops(timeline: dict, timeline_path: Path) -> dict:
 
     return {
         "title": timeline["title"],
+        # Which render this flight was made from (ai-film-lab decision 0014):
+        # fly.py compares it with the timeline to see a re-rendered film.
+        "slug": timeline.get("slug"),
+        "video_sha256": timeline.get("video_sha256"),
         "source": timeline_path.resolve().as_posix(),
         "film": (timeline_path.parent / timeline["video"]).resolve().as_posix(),
         "fps": timeline["fps"],
