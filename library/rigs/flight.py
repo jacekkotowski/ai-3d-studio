@@ -84,7 +84,6 @@ def reset_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     world = bpy.data.worlds.new("World")
-    world.use_nodes = True
     world.node_tree.nodes["Background"].inputs[0].default_value = (*BG, 1)
     scene.world = world
     return scene
@@ -92,7 +91,6 @@ def reset_scene():
 
 def emission_mat(name, rgb, strength=1.0):
     mat = bpy.data.materials.new(name)
-    mat.use_nodes = True
     nodes = mat.node_tree.nodes
     nodes.clear()
     out = nodes.new("ShaderNodeOutputMaterial")
@@ -152,7 +150,6 @@ def image_mat(name, path):
     if not Path(path).exists():
         sys.exit(f"stops.json: picture not found: {path}")
     mat = bpy.data.materials.new(name)
-    mat.use_nodes = True
     nodes = mat.node_tree.nodes
     nodes.clear()
     out = nodes.new("ShaderNodeOutputMaterial")
@@ -236,7 +233,6 @@ def glow_mat(name, rgb, size, inner, r):
     nothing -- a halo, not a shadow, which would not show on this background."""
     (W, H), (w, h) = size, inner
     mat = bpy.data.materials.new(name)
-    mat.use_nodes = True
     mat.surface_render_method = "BLENDED"
     nt = mat.node_tree
     nt.nodes.clear()
@@ -291,7 +287,6 @@ def add_backdrop():
     cards when the camera flies, which is what makes the flight read as 3D."""
     size = 120.0
     mat = bpy.data.materials.new("backdrop")
-    mat.use_nodes = True
     nt = mat.node_tree
     nt.nodes.clear()
     new, link = nt.nodes.new, nt.links.new
@@ -354,7 +349,6 @@ def film_mat(name, film, a, b):
     image: Eevee keeps one texture per image, so screens sharing one would
     all show whichever frame was asked for last."""
     mat = bpy.data.materials.new(name)
-    mat.use_nodes = True
     nodes = mat.node_tree.nodes
     nodes.clear()
     out = nodes.new("ShaderNodeOutputMaterial")

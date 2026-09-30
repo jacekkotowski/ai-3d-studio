@@ -40,3 +40,4 @@ turntable · slow-zoom (push-in) · dolly-rotate · crane (low→high) · glide-
 - Linear colour: emission (0.02) shows as mid-grey. Use ~0.003–0.02 for dark UI surfaces.
 - A card or link sitting on the same plane z-fights with text, so push lines 0.3 behind cards.
 - `bpy.ops.wm.read_factory_settings(use_empty=True)` at the start gives a clean, repeatable scene.
+- Don't set `use_nodes`: new materials and worlds always have a node tree (the flag is deprecated, gone in 6.0).
