@@ -55,7 +55,7 @@ IMG_LONG = 4.4          # a picture card's or screen's longer side (hub x 1.35)
 CORNER = 0.05           # corner radius, as a share of a card's shorter side
 SQUARE_S = 0.4          # a screen's corners square off over this long before it fills the frame
 DIM = 0.25              # film map: a node not yet visited glows at this share of its light
-SHORTS_S = 180          # film map: a film this short stays a Short (the pull-back shrinks to fit)
+SHORTS_S = 179          # film map: a film this short stays a Short, 1 s under 3 min: YouTube reads exactly 3:00 as 3:01 (the pull-back shrinks to fit)
 GLOW = 0.9              # how far a card's coloured glow reaches beyond it
 GLOW_STRENGTH = 0.35
 BACKDROP_Y = 14.0       # the dot grid far behind the map: parallax while flying
@@ -505,12 +505,16 @@ def build_film_camera(scene, locs, sizes, visits, fps, res, overview_loc):
 
 def pullback_frames(film_frames, fps):
     """OVERVIEW_S, unless that would push a Short past SHORTS_S: then only
-    what still fits (never below 1 s), so a Short stays a Short."""
+    what still fits, down to a single frame, so a Short stays a Short."""
     want, room = int(OVERVIEW_S * fps), SHORTS_S * fps - film_frames
-    if film_frames > SHORTS_S * fps or want <= room:
+    if film_frames > SHORTS_S * fps:
+        print(f"Not a Short: film {film_frames / fps:.1f}s is over {SHORTS_S}s, "
+              f"so this uploads as a regular video")
         return want
-    got = max(fps, room)
-    print(f"Shorts guard: pull-back {got / fps:.1f}s instead of {OVERVIEW_S}s "
+    if want <= room:
+        return want
+    got = max(1, room)
+    print(f"Shorts guard: pull-back {got / fps:.2f}s instead of {OVERVIEW_S}s "
           f"(film {film_frames / fps:.1f}s, limit {SHORTS_S}s)")
     return got
 

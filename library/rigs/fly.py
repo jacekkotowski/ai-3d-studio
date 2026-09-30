@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import sys
 import unicodedata
+import webbrowser
 from datetime import date
 from pathlib import Path
 
@@ -34,6 +35,7 @@ BLENDER_GUESSES = [
     r"C:\Program Files\Blender Foundation\Blender*\blender.exe",
     "/Applications/Blender.app/Contents/MacOS/Blender",
 ]
+YOUTUBE_UPLOAD = "https://www.youtube.com/upload"
 TAKES = {"stills": "about 30 s", "draft": "a few minutes", "video": "about 10 minutes"}
 
 
@@ -115,6 +117,9 @@ def render(blender, project, step):
     if hasattr(os, "startfile"):
         os.startfile(folder)                       # Windows: show what was made
     print(f"\n{step} done -> {folder}")
+    if step == "video":
+        webbrowser.open(YOUTUBE_UPLOAD)            # drag flight_film.mp4 from the folder into it
+        print(f"YouTube upload opened: drag {folder / 'flight_film.mp4'} into it")
 
 
 def ask(question):
